@@ -1,0 +1,429 @@
+# ====================
+# SEGURANÇA - ARQUIVOS SENSÍVEIS
+# ====================
+
+# Arquivos de ambiente e configuração
+.env
+.env.local
+.env.development
+.env.production
+.env.staging
+.env.test
+.env.*.local
+*.env
+
+# Arquivos de configuração sensíveis
+config.json
+config.yaml
+config.yml
+secrets.json
+secrets.yaml
+secrets.yml
+settings.json
+settings.yaml
+settings.yml
+
+# Chaves e certificados
+*.key
+*.pem
+*.crt
+*.cer
+*.p12
+*.pfx
+*.jks
+*.keystore
+*.truststore
+id_rsa*
+id_dsa*
+id_ecdsa*
+id_ed25519*
+*.pub
+jwt-secret*
+tls.*
+
+# Arquivos de autenticação
+auth.json
+credentials.json
+service-account*.json
+gcp-key*.json
+aws-credentials*
+azure-credentials*
+
+# Tokens e senhas
+token*
+*token*
+*secret*
+*password*
+*passwd*
+*auth*
+*credential*
+*key*
+api-key*
+access-key*
+
+# ====================
+# GO ESPECÍFICO
+# ====================
+
+# IMPORTANTE: NÃO ignorar as pastas fundamentais do Go:
+# - internal/ (código interno da aplicação)
+# - pkg/ (pacotes reutilizáveis)
+# - cmd/ (pontos de entrada da aplicação)
+# Essas pastas DEVEM ser commitadas!
+
+# Binários
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+crm-backend
+crm-backend.exe
+main
+main.exe
+app
+app.exe
+
+# Arquivos de teste
+*.test
+*.out
+coverage.txt
+coverage.html
+*.coverage
+
+# Vendor directory
+vendor/
+Godeps/
+
+# Go workspace files
+go.work
+go.work.sum
+
+# Arquivos de build (apenas dentro da pasta build)
+build/
+dist/
+bin/
+# Apenas diretório pkg dentro de build, não o pkg raiz do projeto
+build/pkg/
+target/
+
+# Arquivos de módulos Go
+*.sum.backup
+go.mod.backup
+
+# ====================
+# BANCO DE DADOS
+# ====================
+
+# Arquivos de banco de dados
+*.db
+*.sqlite
+*.sqlite3
+*.db3
+*.s3db
+*.sl3
+dump.sql
+*.dump
+*.bak
+*.backup
+
+# Arquivos de migração sensíveis
+*seed*
+*initial*
+*production*
+
+# ====================
+# LOGS E MONITORAMENTO
+# ====================
+
+# Arquivos de log
+*.log
+*.log.*
+logs/
+log/
+/logs
+/log
+
+# Arquivos de debug
+debug
+debug.*
+*.debug
+*.trace
+*.prof
+*.pprof
+
+# Arquivos de crash
+crash.log
+panic.log
+fatal.log
+
+# ====================
+# DOCKER E CONTAINERS
+# ====================
+
+# Docker
+Dockerfile.local
+docker-compose.override.yml
+docker-compose.local.yml
+docker-compose.prod.yml
+.dockerignore.local
+
+# Kubernetes
+*-secret.yaml
+*-secret.yml
+*-configmap.yaml
+*-configmap.yml
+kustomization.yaml
+kustomization.yml
+
+# ====================
+# FERRAMENTAS DE DESENVOLVIMENTO
+# ====================
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Editores
+*.tmp
+*.temp
+*.bak
+*.backup
+*.orig
+*.rej
+
+# ====================
+# ARQUIVOS TEMPORÁRIOS
+# ====================
+
+# Arquivos temporários do sistema
+tmp/
+temp/
+/tmp
+/temp
+*.tmp
+*.temp
+*.cache
+cache/
+.cache/
+
+# Arquivos de processo
+*.pid
+*.seed
+*.pid.lock
+
+# ====================
+# TESTES E COBERTURA
+# ====================
+
+# Arquivos de teste
+test-results/
+test-output/
+coverage/
+.coverage/
+junit.xml
+test-report.xml
+
+# ====================
+# DEPLOYMENT E CI/CD
+# ====================
+
+# Arquivos de deployment
+deploy/
+deployment/
+.deploy/
+terraform.tfstate*
+terraform.tfvars
+*.tfvars
+
+# CI/CD
+.github/workflows/secrets.yml
+.gitlab-ci-local.yml
+.circleci/config.local.yml
+
+# ====================
+# BACKUPS E ARQUIVOS PESSOAIS
+# ====================
+
+# Backups
+*.backup
+*.bak
+*.old
+*.orig
+*~
+.#*
+#*#
+
+# Arquivos pessoais
+notes.txt
+TODO.txt
+personal-notes.*
+my-*
+test-*
+debug-*
+scratch.*
+
+# ====================
+# FERRAMENTAS DE SEGURANÇA
+# ====================
+
+# Ferramentas de análise de segurança
+.sonar/
+sonar-project.properties
+.snyk
+.trivyignore
+
+# Certificados SSL/TLS
+ssl/
+tls/
+certs/
+certificates/
+
+# ====================
+# ARQUIVOS DE CONFIGURAÇÃO ESPECÍFICOS
+# ====================
+
+# Arquivos específicos do projeto
+local-config.*
+dev-config.*
+production-config.*
+staging-config.*
+
+# Scripts locais
+local-*
+dev-*
+personal-*
+my-*
+
+# ====================
+# PERFORMANCE E PROFILING
+# ====================
+
+# Arquivos de profiling
+*.prof
+*.pprof
+*.trace
+cpu.prof
+mem.prof
+profile.cov
+
+# ====================
+# ARQUIVOS DE EXEMPLO E DOCUMENTAÇÃO
+# ====================
+
+# Exemplos sensíveis (manter apenas examples/ públicos)
+examples/secrets/
+examples/config/
+examples/auth/
+examples/production/
+
+# Documentação sensível
+docs/internal/
+docs/secrets/
+docs/production/
+docs/deployment/
+
+# ====================
+# ARQUIVOS DE TERCEIROS
+# ====================
+
+# Node modules (se houver frontend)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Python (se houver scripts)
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+
+# ====================
+# ARQUIVOS DE SISTEMA
+# ====================
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+
+# Linux
+*~
+.directory
+.Trash-*
+
+# ====================
+# ARQUIVOS DE DESENVOLVIMENTO LOCAL
+# ====================
+
+# Configurações locais
+.local/
+local/
+dev/
+development/
+staging/
+production/
+
+# Scripts pessoais
+run-local.*
+start-local.*
+dev-server.*
+test-local.*
+
+# ====================
+# ARQUIVOS DE MONITORAMENTO
+# ====================
+
+# Métricas e monitoramento
+metrics/
+monitoring/
+alerting/
+grafana/
+prometheus/
+
+# ====================
+# FINAL - CATCH ALL
+# ====================
+
+# Qualquer arquivo que comece com "secret", "private" (mas não "internal")
+secret*
+private*
+confidential*
+sensitive*
+
+# Arquivos específicos que começam com internal (mas não a pasta internal/)
+internal-config*
+internal-secret*
+internal-private*
+
+# Arquivos que terminam com extensões sensíveis
+*.secret
+*.private
+*.confidential
+*.sensitive
+
+# Diretórios específicos que não devem ser commitados (mas não internal/ nem pkg/)
+.secrets/
+.private/
+.confidential/
+.env-files/
+.config-files/
+.sensitive-data/

@@ -1,0 +1,119 @@
+# ====================
+# GITATTRIBUTES - SEGURANÇA E PERFORMANCE
+# ====================
+
+# Forçar arquivos de texto com line endings corretos
+*.go text eol=lf
+*.md text eol=lf
+*.txt text eol=lf
+*.json text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.xml text eol=lf
+*.sql text eol=lf
+*.sh text eol=lf
+*.bat text eol=crlf
+*.ps1 text eol=crlf
+
+# Arquivos que devem ser tratados como binários
+*.exe binary
+*.dll binary
+*.so binary
+*.dylib binary
+*.db binary
+*.sqlite binary
+*.sqlite3 binary
+*.jpg binary
+*.jpeg binary
+*.png binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.zip binary
+*.tar binary
+*.gz binary
+*.7z binary
+*.rar binary
+
+# Arquivos que NÃO devem ser incluídos em exports/archives
+.env export-ignore
+.env.* export-ignore
+*.key export-ignore
+*.pem export-ignore
+*.crt export-ignore
+*.p12 export-ignore
+*.pfx export-ignore
+secrets.* export-ignore
+credentials.* export-ignore
+config.local.* export-ignore
+*.log export-ignore
+*.debug export-ignore
+*.trace export-ignore
+*.prof export-ignore
+*.pprof export-ignore
+debug export-ignore
+tmp/ export-ignore
+temp/ export-ignore
+test-results/ export-ignore
+coverage/ export-ignore
+vendor/ export-ignore
+node_modules/ export-ignore
+
+# Arquivos que devem ser filtrados (limpos) antes do commit
+# Usando Git filters para remover conteúdo sensível
+*.env filter=remove-secrets
+*.json filter=remove-secrets
+*.yaml filter=remove-secrets
+*.yml filter=remove-secrets
+
+# Arquivos que devem ser sempre tratados como texto
+Dockerfile text
+Makefile text
+LICENSE text
+README text
+CHANGELOG text
+.gitignore text
+.gitattributes text
+go.mod text
+go.sum text
+
+# Diff customizado para arquivos Go
+*.go diff=golang
+
+# Merge strategy para arquivos específicos
+go.sum merge=union
+go.mod merge=union
+.gitignore merge=union
+
+# Arquivos que devem ser normalizados
+*.go text eol=lf whitespace=blank-at-eol,-blank-at-eof,-space-before-tab,tab-in-indent,tabwidth=4
+*.md text eol=lf whitespace=blank-at-eol,-blank-at-eof,-space-before-tab
+*.json text eol=lf whitespace=blank-at-eol,-blank-at-eof,-space-before-tab
+*.yaml text eol=lf whitespace=blank-at-eol,-blank-at-eof,-space-before-tab
+*.yml text eol=lf whitespace=blank-at-eol,-blank-at-eof,-space-before-tab
+
+# Linguagem específica para GitHub
+*.go linguist-language=Go
+*.md linguist-documentation
+docs/ linguist-documentation
+examples/ linguist-documentation
+
+# Arquivos que devem ser detectados corretamente
+Dockerfile linguist-language=Dockerfile
+Makefile linguist-language=Makefile
+*.sql linguist-language=SQL
+*.sh linguist-language=Shell
+*.bat linguist-language=Batchfile
+*.ps1 linguist-language=PowerShell
+
+# Arquivos que não devem ser considerados na estatística de linguagem
+vendor/ linguist-vendored
+node_modules/ linguist-vendored
+*.min.js linguist-vendored
+*.min.css linguist-vendored
+pkg/ linguist-vendored
+bin/ linguist-vendored
+build/ linguist-vendored
+dist/ linguist-vendored
+coverage/ linguist-vendored
+test-results/ linguist-vendored
