@@ -4,8 +4,10 @@ import (
 	"crm-backend/internal/models"
 	"crm-backend/internal/services"
 	"crm-backend/pkg/errors"
+	"crm-backend/pkg/logger"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -39,19 +41,30 @@ func NewInteractionHandler(interactionService services.InteractionService) *Inte
 // @Failure 500 {object} map[string]interface{} "Erro interno"
 // @Router /api/contacts/{contactId}/interactions [post]
 func (h *InteractionHandler) Create(c *gin.Context) {
+	start := time.Now()
 	userID := c.GetUint("user_id")
 	var req models.InteractionCreateRequest
 
-	// Obter ID do contato da URL
-	contactIDStr := c.Param("contactId")
+	// Obter ID do contato da URL (parâmetro :id)
+	contactIDStr := c.Param("id")
+	logger.Debugf("Criando interação para contato ID: %s (usuário: %d)", contactIDStr, userID)
+	
 	contactID, err := strconv.ParseUint(contactIDStr, 10, 32)
 	if err != nil {
+		logger.LogError(err, "Erro ao converter ID do contato", map[string]interface{}{
+			"contact_id_str": contactIDStr,
+			"user_id":        userID,
+		})
 		c.Error(errors.NewBadRequestError("ID do contato inválido"))
 		return
 	}
 
 	// Validar entrada JSON
 	if err := c.ShouldBindJSON(&req); err != nil {
+		logger.LogError(err, "Erro ao validar dados de entrada", map[string]interface{}{
+			"contact_id": contactID,
+			"user_id":    userID,
+		})
 		c.Error(errors.NewBadRequestError("Dados de entrada inválidos: " + err.Error()))
 		return
 	}
@@ -59,9 +72,22 @@ func (h *InteractionHandler) Create(c *gin.Context) {
 	// Chamar service para criar interação
 	interaction, err := h.interactionService.Create(userID, uint(contactID), &req)
 	if err != nil {
+		logger.LogError(err, "Erro ao criar interação", map[string]interface{}{
+			"contact_id": contactID,
+			"user_id":    userID,
+			"request":    req,
+		})
 		c.Error(err)
 		return
 	}
+
+	duration := time.Since(start)
+	logger.WithFields("INFO", "Interaction Created", map[string]interface{}{
+		"user_id":        userID,
+		"contact_id":     contactID,
+		"interaction_id": interaction.ID,
+		"duration":       duration,
+	})
 
 	c.JSON(http.StatusCreated, interaction)
 }
@@ -86,19 +112,30 @@ func (h *InteractionHandler) Create(c *gin.Context) {
 // @Failure 500 {object} map[string]interface{} "Erro interno"
 // @Router /api/contacts/{contactId}/interactions [get]
 func (h *InteractionHandler) ListByContact(c *gin.Context) {
+	start := time.Now()
 	userID := c.GetUint("user_id")
 	var filter models.InteractionListFilter
 
-	// Obter ID do contato da URL
-	contactIDStr := c.Param("contactId")
+	// Obter ID do contato da URL (parâmetro :id)
+	contactIDStr := c.Param("id")
+	logger.Debugf("Listando interações para contato ID: %s (usuário: %d)", contactIDStr, userID)
+	
 	contactID, err := strconv.ParseUint(contactIDStr, 10, 32)
 	if err != nil {
+		logger.LogError(err, "Erro ao converter ID do contato", map[string]interface{}{
+			"contact_id_str": contactIDStr,
+			"user_id":        userID,
+		})
 		c.Error(errors.NewBadRequestError("ID do contato inválido"))
 		return
 	}
 
 	// Bind query parameters
 	if err := c.ShouldBindQuery(&filter); err != nil {
+		logger.LogError(err, "Erro ao validar parâmetros de consulta", map[string]interface{}{
+			"contact_id": contactID,
+			"user_id":    userID,
+		})
 		c.Error(errors.NewBadRequestError("Parâmetros de consulta inválidos: " + err.Error()))
 		return
 	}
@@ -106,9 +143,22 @@ func (h *InteractionHandler) ListByContact(c *gin.Context) {
 	// Chamar service para listar interações do contato
 	interactions, err := h.interactionService.GetByContactID(userID, uint(contactID), &filter)
 	if err != nil {
+		logger.LogError(err, "Erro ao listar interações", map[string]interface{}{
+			"contact_id": contactID,
+			"user_id":    userID,
+			"filter":     filter,
+		})
 		c.Error(err)
 		return
 	}
+
+	duration := time.Since(start)
+	logger.WithFields("INFO", "Interactions Listed", map[string]interface{}{
+		"user_id":      userID,
+		"contact_id":   contactID,
+		"interactions": len(interactions),
+		"duration":     duration,
+	})
 
 	c.JSON(http.StatusOK, interactions)
 }
