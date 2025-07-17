@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"os"
+	"time"
 
 	"crm-backend/internal/config"
 	"crm-backend/internal/database"
@@ -12,6 +13,7 @@ import (
 	"crm-backend/internal/services"
 	"crm-backend/pkg/logger"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 )
@@ -73,83 +75,106 @@ func main() {
 
 	router := gin.Default()
 
+	config := cors.Config{
+		AllowOrigins:     []string{"http://localhost:5173", "http://localhost:3000", "http://localhost:4200"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Content-Length", "Authorization", "Accept"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+		MaxAge:           12 * time.Hour,
+	}
+
+	router.Use(cors.New(config))
+
 	// Middleware global
-	router.Use(middleware.CORS())
 	router.Use(middleware.CustomLogger()) // Usar o logger personalizado
 	router.Use(middleware.ErrorHandler())
 
 	logger.Info("Middlewares configurados")
 
-	// Rotas públicas
+	// Agrupar todas as rotas sob /api
 	api := router.Group("/api")
 	{
+		// Rotas públicas
 		auth := api.Group("/auth")
 		{
 			auth.POST("/register", authHandler.Register)
 			auth.POST("/login", authHandler.Login)
+			auth.GET("/validate", middleware.AuthMiddleware(cfg.JWTSecret), authHandler.ValidateToken)
 		}
-	}
 
-	// Rotas protegidas
-	protected := api.Group("/")
-	protected.Use(middleware.AuthMiddleware(cfg.JWTSecret))
-	{
-		// Rotas de usuários
-		users := protected.Group("/users")
+		// Rotas protegidas (agora como subgrupo de /api)
+		protected := api.Group("/")
+		protected.Use(middleware.AuthMiddleware(cfg.JWTSecret))
 		{
-			users.GET("/profile", userHandler.GetProfile)
-			users.PUT("/profile", userHandler.UpdateProfile)
+			// Rotas de usuários
+			users := protected.Group("/users")
+			{
+				users.GET("/profile", userHandler.GetProfile)
+				users.PUT("/profile", userHandler.UpdateProfile)
+				users.PUT("/change-password", userHandler.ChangePassword)
+				users.DELETE("/delete-account", userHandler.DeleteAccount)
+				users.GET("/stats", userHandler.GetStats)
+			}
+
+			// Rotas de contatos
+			contacts := protected.Group("/contacts")
+			{
+				contacts.POST("/create", contactHandler.Create)
+				contacts.GET("/list", contactHandler.List)
+				contacts.GET("/:id", contactHandler.GetByID)
+				contacts.PUT("/:id", contactHandler.Update)
+				contacts.DELETE("/:id", contactHandler.Delete)
+
+				contacts.POST("/:id/interactions", interactionHandler.Create)
+				contacts.GET("/:id/interactions", interactionHandler.ListByContact)
+			}
+
+			// Rotas de tarefas
+			tasks := protected.Group("/tasks")
+			{
+				tasks.POST("/create", taskHandler.Create)
+				tasks.GET("/list", taskHandler.List)
+				tasks.GET("/:id", taskHandler.GetByID)
+				tasks.PUT("/:id", taskHandler.Update)
+				tasks.DELETE("/:id", taskHandler.Delete)
+			}
+
+			// Rotas de projetos
+			projects := protected.Group("/projects")
+			{
+				projects.POST("/create", projectHandler.Create)
+				projects.GET("/list", projectHandler.List)
+				projects.GET("/:id", projectHandler.GetByID)
+				projects.PUT("/:id", projectHandler.Update)
+				projects.DELETE("/:id", projectHandler.Delete)
+			}
+
+			// Rotas de interações (globais)
+			interactions := protected.Group("/interactions")
+			{
+				interactions.GET("/list", interactionHandler.List)
+				interactions.GET("/:id", interactionHandler.GetByID)
+				interactions.PUT("/:id", interactionHandler.Update)
+				interactions.DELETE("/:id", interactionHandler.Delete)
+			}
 		}
 
-		// Rotas de contatos
-		contacts := protected.Group("/contacts")
-		{
-			contacts.POST("/", contactHandler.Create)
-			contacts.GET("/", contactHandler.List)
-			contacts.GET("/:id", contactHandler.GetByID)
-			contacts.PUT("/:id", contactHandler.Update)
-			contacts.DELETE("/:id", contactHandler.Delete)
-
-			// Rotas de interações
-			contacts.POST("/:id/interactions", interactionHandler.Create)
-			contacts.GET("/:id/interactions", interactionHandler.ListByContact)
+		// Iniciar servidor
+		port := os.Getenv("PORT")
+		if port == "" {
+			port = "8080"
 		}
 
-		// Rotas de tarefas
-		tasks := protected.Group("/tasks")
-		{
-			tasks.POST("/", taskHandler.Create)
-			tasks.GET("/", taskHandler.List)
-			tasks.GET("/:id", taskHandler.GetByID)
-			tasks.PUT("/:id", taskHandler.Update)
-			tasks.DELETE("/:id", taskHandler.Delete)
+		logger.Infof("Servidor iniciando na porta %s", port)
+		logger.WithFields("INFO", "Server Starting", map[string]interface{}{
+			"port":        port,
+			"environment": cfg.Environment,
+			"address":     "0.0.0.0:" + port,
+		})
+
+		if err := router.Run("0.0.0.0:" + port); err != nil {
+			logger.Fatal("Falha ao iniciar servidor:", err)
 		}
-
-		// Rotas de projetos
-		projects := protected.Group("/projects")
-		{
-			projects.POST("/", projectHandler.Create)
-			projects.GET("/", projectHandler.List)
-			projects.GET("/:id", projectHandler.GetByID)
-			projects.PUT("/:id", projectHandler.Update)
-			projects.DELETE("/:id", projectHandler.Delete)
-		}
-	}
-
-	// Iniciar servidor
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080"
-	}
-
-	logger.Infof("Servidor iniciando na porta %s", port)
-	logger.WithFields("INFO", "Server Starting", map[string]interface{}{
-		"port":        port,
-		"environment": cfg.Environment,
-		"address":     "0.0.0.0:" + port,
-	})
-
-	if err := router.Run("0.0.0.0:" + port); err != nil {
-		logger.Fatal("Falha ao iniciar servidor:", err)
 	}
 }

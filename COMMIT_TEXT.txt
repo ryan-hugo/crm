@@ -1,0 +1,20 @@
+fix: Corrigir autenticação JWT na rota /api/users/profile
+
+- Corrigir conversão de user_id de float64 para uint no middleware
+- Adicionar validação adicional de user_id > 0  
+- Implementar logging detalhado para debug de autenticação
+- Melhorar tratamento de erros no handler GetProfile
+- Adicionar scripts de teste automatizados (bash e PowerShell)
+
+Problema: JWT armazena números como float64, mas middleware passava 
+interface{} diretamente, causando falha na conversão c.GetUint("user_id")
+
+Solução: Converter explicitamente claims["user_id"].(float64) para uint 
+com validação antes de adicionar ao contexto
+
+Arquivos modificados:
+- internal/middleware/auth.go
+- internal/handlers/user_handler.go  
+- scripts/test-auth.sh (novo)
+- scripts/test-auth.ps1 (novo)
+- docs/JWT_AUTH_FIX.md (novo)

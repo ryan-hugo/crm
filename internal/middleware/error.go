@@ -13,10 +13,12 @@ func ErrorHandler() gin.HandlerFunc {
 	return gin.HandlerFunc(func(c *gin.Context) {
 		c.Next()
 
+		// Os cabeçalhos CORS já são adicionados pelo middleware CORS
+
 		// Verificar se houve algum erro
 		if len(c.Errors) > 0 {
 			err := c.Errors.Last()
-			
+
 			// Verificar se é um erro da aplicação
 			if appErr, ok := err.Err.(*errors.AppError); ok {
 				logger.Warning("Application error:", appErr.Message, "Details:", appErr.Details)
@@ -35,4 +37,3 @@ func ErrorHandler() gin.HandlerFunc {
 		}
 	})
 }
-
