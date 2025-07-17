@@ -116,6 +116,7 @@ func main() {
 				users.PUT("/change-password", userHandler.ChangePassword)
 				users.DELETE("/delete-account", userHandler.DeleteAccount)
 				users.GET("/stats", userHandler.GetStats)
+				users.GET("/activities", userHandler.GetRecentActivities)
 			}
 
 			// Rotas de contatos
@@ -139,6 +140,8 @@ func main() {
 				tasks.GET("/:id", taskHandler.GetByID)
 				tasks.PUT("/:id", taskHandler.Update)
 				tasks.DELETE("/:id", taskHandler.Delete)
+				tasks.PUT("/:id/complete", taskHandler.MarkTaskAsCompleted)
+				tasks.PUT("/:id/uncomplete", taskHandler.MarkTaskAsPending)
 			}
 
 			// Rotas de projetos

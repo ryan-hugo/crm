@@ -112,7 +112,7 @@ func (h *TaskHandler) List(c *gin.Context) {
 // @Router /api/tasks/{id} [get]
 func (h *TaskHandler) GetByID(c *gin.Context) {
 	userID := c.GetUint("user_id")
-	
+
 	// Obter ID da tarefa da URL
 	taskIDStr := c.Param("id")
 	taskID, err := strconv.ParseUint(taskIDStr, 10, 32)
@@ -191,7 +191,7 @@ func (h *TaskHandler) Update(c *gin.Context) {
 // @Router /api/tasks/{id} [delete]
 func (h *TaskHandler) Delete(c *gin.Context) {
 	userID := c.GetUint("user_id")
-	
+
 	// Obter ID da tarefa da URL
 	taskIDStr := c.Param("id")
 	taskID, err := strconv.ParseUint(taskIDStr, 10, 32)
@@ -210,7 +210,7 @@ func (h *TaskHandler) Delete(c *gin.Context) {
 	c.Status(http.StatusNoContent)
 }
 
-// MarkAsCompleted marca uma tarefa como concluída
+// MarkTaskAsCompleted marca uma tarefa como concluída
 // @Summary Marcar tarefa como concluída
 // @Description Marca uma tarefa específica como concluída
 // @Tags tasks
@@ -224,9 +224,9 @@ func (h *TaskHandler) Delete(c *gin.Context) {
 // @Failure 404 {object} map[string]interface{} "Tarefa não encontrada"
 // @Failure 500 {object} map[string]interface{} "Erro interno"
 // @Router /api/tasks/{id}/complete [put]
-func (h *TaskHandler) MarkAsCompleted(c *gin.Context) {
+func (h *TaskHandler) MarkTaskAsCompleted(c *gin.Context) {
 	userID := c.GetUint("user_id")
-	
+
 	// Obter ID da tarefa da URL
 	taskIDStr := c.Param("id")
 	taskID, err := strconv.ParseUint(taskIDStr, 10, 32)
@@ -235,20 +235,17 @@ func (h *TaskHandler) MarkAsCompleted(c *gin.Context) {
 		return
 	}
 
-	// Chamar service para marcar como concluída
+	// Chamar service para marcar tarefa como concluída
 	task, err := h.taskService.MarkAsCompleted(userID, uint(taskID))
 	if err != nil {
 		c.Error(err)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"message": "Tarefa marcada como concluída",
-		"task":    task,
-	})
+	c.JSON(http.StatusOK, task)
 }
 
-// MarkAsPending marca uma tarefa como pendente
+// MarkTaskAsPending marca uma tarefa como pendente
 // @Summary Marcar tarefa como pendente
 // @Description Marca uma tarefa específica como pendente
 // @Tags tasks
@@ -261,10 +258,10 @@ func (h *TaskHandler) MarkAsCompleted(c *gin.Context) {
 // @Failure 403 {object} map[string]interface{} "Acesso negado"
 // @Failure 404 {object} map[string]interface{} "Tarefa não encontrada"
 // @Failure 500 {object} map[string]interface{} "Erro interno"
-// @Router /api/tasks/{id}/pending [put]
-func (h *TaskHandler) MarkAsPending(c *gin.Context) {
+// @Router /api/tasks/{id}/uncomplete [put]
+func (h *TaskHandler) MarkTaskAsPending(c *gin.Context) {
 	userID := c.GetUint("user_id")
-	
+
 	// Obter ID da tarefa da URL
 	taskIDStr := c.Param("id")
 	taskID, err := strconv.ParseUint(taskIDStr, 10, 32)
@@ -273,17 +270,14 @@ func (h *TaskHandler) MarkAsPending(c *gin.Context) {
 		return
 	}
 
-	// Chamar service para marcar como pendente
+	// Chamar service para marcar tarefa como pendente
 	task, err := h.taskService.MarkAsPending(userID, uint(taskID))
 	if err != nil {
 		c.Error(err)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"message": "Tarefa marcada como pendente",
-		"task":    task,
-	})
+	c.JSON(http.StatusOK, task)
 }
 
 // GetByContact lista tarefas de um contato específico
@@ -302,7 +296,7 @@ func (h *TaskHandler) MarkAsPending(c *gin.Context) {
 // @Router /api/contacts/{contactId}/tasks [get]
 func (h *TaskHandler) GetByContact(c *gin.Context) {
 	userID := c.GetUint("user_id")
-	
+
 	// Obter ID do contato da URL
 	contactIDStr := c.Param("contactId")
 	contactID, err := strconv.ParseUint(contactIDStr, 10, 32)
@@ -337,7 +331,7 @@ func (h *TaskHandler) GetByContact(c *gin.Context) {
 // @Router /api/projects/{projectId}/tasks [get]
 func (h *TaskHandler) GetByProject(c *gin.Context) {
 	userID := c.GetUint("user_id")
-	
+
 	// Obter ID do projeto da URL
 	projectIDStr := c.Param("projectId")
 	projectID, err := strconv.ParseUint(projectIDStr, 10, 32)
@@ -392,7 +386,7 @@ func (h *TaskHandler) GetOverdue(c *gin.Context) {
 // @Router /api/tasks/upcoming [get]
 func (h *TaskHandler) GetUpcoming(c *gin.Context) {
 	userID := c.GetUint("user_id")
-	
+
 	// Obter número de dias da query string
 	daysStr := c.DefaultQuery("days", "7")
 	days, err := strconv.Atoi(daysStr)
@@ -409,4 +403,3 @@ func (h *TaskHandler) GetUpcoming(c *gin.Context) {
 
 	c.JSON(http.StatusOK, tasks)
 }
-

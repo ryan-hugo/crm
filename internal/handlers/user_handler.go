@@ -6,6 +6,7 @@ import (
 	"crm-backend/pkg/errors"
 	"crm-backend/pkg/logger"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -219,6 +220,49 @@ func (h *UserHandler) GetStats(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, stats)
+}
+
+// GetRecentActivities obtém as atividades recentes do usuário
+// @Summary Obter atividades recentes do usuário
+// @Description Retorna as atividades recentes do usuário autenticado (tarefas, projetos, contatos e interações)
+// @Tags users
+// @Security BearerAuth
+// @Produce json
+// @Param limit query int false "Limite de resultados (padrão: 10)"
+// @Success 200 {object} models.RecentActivityResponse
+// @Failure 401 {object} map[string]interface{} "Não autorizado"
+// @Failure 500 {object} map[string]interface{} "Erro interno"
+// @Router /api/users/activities [get]
+func (h *UserHandler) GetRecentActivities(c *gin.Context) {
+	start := time.Now()
+	userID := c.GetUint("user_id")
+
+	// Obter limite da query string
+	limitStr := c.DefaultQuery("limit", "10")
+	limit, err := strconv.Atoi(limitStr)
+	if err != nil || limit <= 0 {
+		limit = 10
+	}
+
+	activities, err := h.userService.GetRecentActivities(userID, limit)
+	if err != nil {
+		logger.LogError(err, "Erro ao buscar atividades recentes", map[string]interface{}{
+			"user_id": userID,
+			"limit":   limit,
+		})
+		c.Error(err)
+		return
+	}
+
+	duration := time.Since(start)
+	logger.WithFields("INFO", "User Recent Activities Retrieved", map[string]interface{}{
+		"user_id":        userID,
+		"limit":          limit,
+		"activity_count": activities.Count,
+		"duration":       duration,
+	})
+
+	c.JSON(http.StatusOK, activities)
 }
 
 // ChangePasswordRequest representa os dados para alteração de senha
