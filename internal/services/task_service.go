@@ -117,14 +117,6 @@ func (s *taskService) GetByID(userID, taskID uint) (*models.Task, error) {
 
 // GetByUserID obtém todas as tarefas do usuário
 func (s *taskService) GetByUserID(userID uint, filter *models.TaskListFilter) ([]models.Task, error) {
-	// Aplicar valores padrão ao filtro se necessário
-	if filter == nil {
-		filter = &models.TaskListFilter{}
-	}
-	if filter.Limit == 0 {
-		filter.Limit = 50 // Limite padrão
-	}
-
 	tasks, err := s.taskRepo.GetByUserID(userID, filter)
 	if err != nil {
 		return nil, errors.ErrInternalServer

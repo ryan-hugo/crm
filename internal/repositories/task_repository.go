@@ -18,6 +18,7 @@ type TaskRepository interface {
 	GetByProjectID(projectID uint) ([]models.Task, error)
 	CountByUserID(userID uint) (int64, error)
 	CountPendingByUserID(userID uint) (int64, error)
+	CountOverdueByUserID(userID uint) (int64, error)
 	GetOverdueTasks(userID uint) ([]models.Task, error)
 }
 
@@ -155,12 +156,24 @@ func (r *taskRepository) CountPendingByUserID(userID uint) (int64, error) {
 	return count, nil
 }
 
+// CountOverdueByUserID conta o número de tarefas em atraso de um usuário
+func (r *taskRepository) CountOverdueByUserID(userID uint) (int64, error) {
+	var count int64
+	now := time.Now()
+	if err := r.db.Model(&models.Task{}).
+		Where("user_id = ? AND status = ? AND due_date < ?", userID, models.TaskStatusPending, now).
+		Count(&count).Error; err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
 // GetOverdueTasks busca tarefas em atraso de um usuário
 func (r *taskRepository) GetOverdueTasks(userID uint) ([]models.Task, error) {
 	var tasks []models.Task
 	now := time.Now()
-	
-	if err := r.db.Where("user_id = ? AND status = ? AND due_date < ?", 
+
+	if err := r.db.Where("user_id = ? AND status = ? AND due_date < ?",
 		userID, models.TaskStatusPending, now).
 		Preload("Contact").
 		Preload("Project").
@@ -168,7 +181,6 @@ func (r *taskRepository) GetOverdueTasks(userID uint) ([]models.Task, error) {
 		Find(&tasks).Error; err != nil {
 		return nil, err
 	}
-	
+
 	return tasks, nil
 }
-

@@ -30,6 +30,7 @@ type UserStats struct {
 	TotalTasks         int64 `json:"total_tasks"`
 	PendingTasks       int64 `json:"pending_tasks"`
 	CompletedTasks     int64 `json:"completed_tasks"`
+	OverdueTasks       int64 `json:"overdue_tasks"`
 	TotalProjects      int64 `json:"total_projects"`
 	ActiveProjects     int64 `json:"active_projects"`
 	CompletedProjects  int64 `json:"completed_projects"`
@@ -208,6 +209,7 @@ func (s *userService) DeleteAccount(userID uint, password string) error {
 func (s *userService) GetUserStats(userID uint) (*UserStats, error) {
 	stats := &UserStats{
 		RecentInteractions: 0, // Inicializar explicitamente
+		OverdueTasks:       0, // Inicializar explicitamente
 	}
 
 	// Total de contatos
@@ -246,6 +248,15 @@ func (s *userService) GetUserStats(userID uint) (*UserStats, error) {
 		}
 		stats.PendingTasks = pendingTasks
 		stats.CompletedTasks = totalTasks - pendingTasks
+
+		// Contar tarefas em atraso
+		overdueTasks, err := s.taskRepo.CountOverdueByUserID(userID)
+		if err != nil {
+			// Se houver erro, definir como 0 mas incluir no resultado
+			stats.OverdueTasks = 0
+		} else {
+			stats.OverdueTasks = overdueTasks
+		}
 	}
 
 	// Estatísticas de projetos

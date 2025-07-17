@@ -23,23 +23,23 @@ type ContactService interface {
 
 // ContactDetails representa detalhes completos de um contato
 type ContactDetails struct {
-	Contact      *models.Contact     `json:"contact"`
+	Contact      *models.Contact      `json:"contact"`
 	Interactions []models.Interaction `json:"interactions"`
-	Tasks        []models.Task       `json:"tasks"`
-	Projects     []models.Project    `json:"projects"`
+	Tasks        []models.Task        `json:"tasks"`
+	Projects     []models.Project     `json:"projects"`
 }
 
 // ContactSummary representa um resumo do contato
 type ContactSummary struct {
-	Contact            *models.Contact `json:"contact"`
-	TotalInteractions  int64           `json:"total_interactions"`
-	TotalTasks         int64           `json:"total_tasks"`
-	CompletedTasks     int64           `json:"completed_tasks"`
-	PendingTasks       int64           `json:"pending_tasks"`
-	TotalProjects      int64           `json:"total_projects"`
-	ActiveProjects     int64           `json:"active_projects"`
-	CompletedProjects  int64           `json:"completed_projects"`
-	LastInteractionDate *string        `json:"last_interaction_date"`
+	Contact             *models.Contact `json:"contact"`
+	TotalInteractions   int64           `json:"total_interactions"`
+	TotalTasks          int64           `json:"total_tasks"`
+	CompletedTasks      int64           `json:"completed_tasks"`
+	PendingTasks        int64           `json:"pending_tasks"`
+	TotalProjects       int64           `json:"total_projects"`
+	ActiveProjects      int64           `json:"active_projects"`
+	CompletedProjects   int64           `json:"completed_projects"`
+	LastInteractionDate *string         `json:"last_interaction_date"`
 }
 
 // contactService implementa ContactService
@@ -393,4 +393,3 @@ func (s *contactService) ConvertLeadToClient(userID, contactID uint) (*models.Co
 
 	return updatedContact, nil
 }
-

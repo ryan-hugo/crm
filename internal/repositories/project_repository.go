@@ -46,18 +46,6 @@ func (r *projectRepository) GetByID(id uint) (*models.Project, error) {
 	return &project, nil
 }
 
-// GetWithTasks busca um projeto pelo ID incluindo suas tarefas
-func (r *projectRepository) GetWithTasks(id uint) (*models.Project, error) {
-	var project models.Project
-	if err := r.db.Preload("Client").
-		Preload("User").
-		Preload("Tasks").
-		First(&project, id).Error; err != nil {
-		return nil, err
-	}
-	return &project, nil
-}
-
 // GetByUserID busca projetos por ID do usuário com filtros
 func (r *projectRepository) GetByUserID(userID uint, filter *models.ProjectListFilter) ([]models.Project, error) {
 	var projects []models.Project
@@ -138,5 +126,16 @@ func (r *projectRepository) CountByStatus(userID uint, status models.ProjectStat
 		return 0, err
 	}
 	return count, nil
+}
+
+
+
+// GetWithTasks obtém um projeto com suas tarefas associadas
+func (r *projectRepository) GetWithTasks(id uint) (*models.Project, error) {
+	var project models.Project
+	if err := r.db.Preload("Tasks").Preload("Client").First(&project, id).Error; err != nil {
+		return nil, err
+	}
+	return &project, nil
 }
 

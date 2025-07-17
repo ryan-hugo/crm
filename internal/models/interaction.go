@@ -18,15 +18,15 @@ const (
 
 // Interaction representa uma interação com um contato
 type Interaction struct {
-	ID          uint               `json:"id" gorm:"primaryKey"`
-	Type        InteractionType    `json:"type" gorm:"not null" validate:"required,oneof=EMAIL CALL MEETING OTHER"`
-	Date        time.Time          `json:"date" gorm:"not null" validate:"required"`
-	Subject     string             `json:"subject,omitempty" validate:"omitempty,max=255"`
-	Description string             `json:"description,omitempty"`
-	ContactID   uint               `json:"contact_id" gorm:"not null"`
-	CreatedAt   time.Time          `json:"created_at"`
-	UpdatedAt   time.Time          `json:"updated_at"`
-	DeletedAt   gorm.DeletedAt     `json:"-" gorm:"index"`
+	ID          uint            `json:"id" gorm:"primaryKey"`
+	Type        InteractionType `json:"type" gorm:"not null" validate:"required,oneof=EMAIL CALL MEETING OTHER"`
+	Date        time.Time       `json:"date" gorm:"not null" validate:"required"`
+	Subject     string          `json:"subject,omitempty" validate:"omitempty,max=255"`
+	Description string          `json:"description,omitempty"`
+	ContactID   uint            `json:"contact_id" gorm:"not null"`
+	CreatedAt   time.Time       `json:"created_at"`
+	UpdatedAt   time.Time       `json:"updated_at"`
+	DeletedAt   gorm.DeletedAt  `json:"-" gorm:"index"`
 
 	// Relacionamentos
 	Contact Contact `json:"contact,omitempty" gorm:"foreignKey:ContactID"`
@@ -57,4 +57,3 @@ type InteractionListFilter struct {
 	Limit     int             `form:"limit" validate:"omitempty,min=1,max=100"`
 	Offset    int             `form:"offset" validate:"omitempty,min=0"`
 }
-

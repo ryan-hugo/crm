@@ -168,6 +168,8 @@ func (r *contactRepository) CountByType(userID uint, contactType models.ContactT
 	return count, nil
 }
 
+
+
 // SearchByName busca contatos por nome (busca parcial)
 func (r *contactRepository) SearchByName(userID uint, name string) ([]models.Contact, error) {
 	var contacts []models.Contact
