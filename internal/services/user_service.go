@@ -24,51 +24,51 @@ type UserService interface {
 
 // UserStats representa estatísticas do usuário
 type UserStats struct {
-	TotalContacts       int64                        `json:"total_contacts"`
-	TotalClients        int64                        `json:"total_clients"`
-	TotalLeads          int64                        `json:"total_leads"`
-	TotalTasks          int64                        `json:"total_tasks"`
-	PendingTasks        int64                        `json:"pending_tasks"`
-	CompletedTasks      int64                        `json:"completed_tasks"`
-	TotalProjects       int64                        `json:"total_projects"`
-	ActiveProjects      int64                        `json:"active_projects"`
-	CompletedProjects   int64                        `json:"completed_projects"`
-	TotalInteractions   int64                        `json:"total_interactions"`
+	TotalContacts     int64 `json:"total_contacts"`
+	TotalClients      int64 `json:"total_clients"`
+	TotalLeads        int64 `json:"total_leads"`
+	TotalTasks        int64 `json:"total_tasks"`
+	PendingTasks      int64 `json:"pending_tasks"`
+	CompletedTasks    int64 `json:"completed_tasks"`
+	TotalProjects     int64 `json:"total_projects"`
+	ActiveProjects    int64 `json:"active_projects"`
+	CompletedProjects int64 `json:"completed_projects"`
+	TotalInteractions int64 `json:"total_interactions"`
 }
 
 // DashboardProject representa um resumo de projeto para o dashboard
 type DashboardProject struct {
-	ID          uint                  `json:"id"`
-	Name        string                `json:"name"`
-	Status      models.ProjectStatus  `json:"status"`
-	ClientName  string                `json:"client_name"`
-	CreatedAt   time.Time             `json:"created_at"`
+	ID         uint                 `json:"id"`
+	Name       string               `json:"name"`
+	Status     models.ProjectStatus `json:"status"`
+	ClientName string               `json:"client_name"`
+	CreatedAt  time.Time            `json:"created_at"`
 }
 
 // DashboardInteraction representa um resumo de interação para o dashboard
 type DashboardInteraction struct {
-	ID          uint                     `json:"id"`
-	Type        models.InteractionType   `json:"type"`
-	Subject     string                   `json:"subject"`
-	ContactName string                   `json:"contact_name"`
-	Date        time.Time                `json:"date"`
+	ID          uint                   `json:"id"`
+	Type        models.InteractionType `json:"type"`
+	Subject     string                 `json:"subject"`
+	ContactName string                 `json:"contact_name"`
+	Date        time.Time              `json:"date"`
 }
 
 // DashboardTask representa um resumo de tarefa para o dashboard
 type DashboardTask struct {
-	ID          uint              `json:"id"`
-	Title       string            `json:"title"`
-	Priority    models.Priority   `json:"priority"`
-	DueDate     *time.Time        `json:"due_date,omitempty"`
-	ContactName string            `json:"contact_name,omitempty"`
-	ProjectName string            `json:"project_name,omitempty"`
+	ID          uint            `json:"id"`
+	Title       string          `json:"title"`
+	Priority    models.Priority `json:"priority"`
+	DueDate     *time.Time      `json:"due_date,omitempty"`
+	ContactName string          `json:"contact_name,omitempty"`
+	ProjectName string          `json:"project_name,omitempty"`
 }
 
 // DashboardData representa os dados completos para o dashboard
 type DashboardData struct {
-	RecentProjects      []DashboardProject           `json:"recent_projects"`
-	RecentInteractions  []DashboardInteraction       `json:"recent_interactions"`
-	RecentPendingTasks  []DashboardTask              `json:"recent_pending_tasks"`
+	RecentProjects     []DashboardProject     `json:"recent_projects"`
+	RecentInteractions []DashboardInteraction `json:"recent_interactions"`
+	RecentPendingTasks []DashboardTask        `json:"recent_pending_tasks"`
 }
 
 // userService implementa UserService
@@ -371,7 +371,7 @@ func createActivityFromInteraction(interaction models.Interaction) models.UserAc
 	if title == "" {
 		title = "Interação sem assunto"
 	}
-	
+
 	contactID := interaction.ContactID
 	activity := models.UserActivity{
 		ID:        interaction.ID,
@@ -539,7 +539,7 @@ func (s *userService) GetDashboardData(userID uint) (*DashboardData, error) {
 	// Buscar projetos ativos recentes para o dashboard
 	if s.projectRepo != nil {
 		activeFilter := &models.ProjectListFilter{
-			Status: models.ProjectStatusInProgress,
+			Status: "IN_PROGRESS",
 			Limit:  5,
 		}
 		activeProjects, err := s.projectRepo.GetByUserID(userID, activeFilter)
@@ -572,14 +572,14 @@ func (s *userService) GetDashboardData(userID uint) (*DashboardData, error) {
 					Priority: task.Priority,
 					DueDate:  task.DueDate,
 				}
-				
+
 				if task.Contact != nil {
 					dashboardTask.ContactName = task.Contact.Name
 				}
 				if task.Project != nil {
 					dashboardTask.ProjectName = task.Project.Name
 				}
-				
+
 				dashboardData.RecentPendingTasks = append(dashboardData.RecentPendingTasks, dashboardTask)
 			}
 		}

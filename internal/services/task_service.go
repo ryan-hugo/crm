@@ -335,4 +335,3 @@ func (s *taskService) GetUpcomingTasks(userID uint, days int) ([]models.Task, er
 
 	return upcomingTasks, nil
 }
-

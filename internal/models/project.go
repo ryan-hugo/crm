@@ -51,9 +51,8 @@ type ProjectUpdateRequest struct {
 
 // ProjectListFilter representa os filtros para listagem de projetos
 type ProjectListFilter struct {
-	Status   ProjectStatus `form:"status" validate:"omitempty,oneof=IN_PROGRESS COMPLETED CANCELLED"`
-	ClientID *uint         `form:"client_id"`
-	Limit    int           `form:"limit" validate:"omitempty,min=1,max=100"`
-	Offset   int           `form:"offset" validate:"omitempty,min=0"`
+	Status   string `form:"status" validate:"omitempty,oneof=IN_PROGRESS COMPLETED CANCELLED"`
+	ClientID *uint  `form:"client_id"`
+	Limit    int    `form:"limit" validate:"omitempty,min=1,max=100"`
+	Offset   int    `form:"offset" validate:"omitempty,min=0"`
 }
-

@@ -82,6 +82,22 @@ func (h *ProjectHandler) List(c *gin.Context) {
 		return
 	}
 
+	// Validar status se fornecido
+	if filter.Status != "" {
+		validStatuses := []string{"IN_PROGRESS", "COMPLETED", "CANCELLED"}
+		isValid := false
+		for _, status := range validStatuses {
+			if filter.Status == status {
+				isValid = true
+				break
+			}
+		}
+		if !isValid {
+			c.Error(errors.NewBadRequestError("Status inválido. Use: IN_PROGRESS, COMPLETED ou CANCELLED"))
+			return
+		}
+	}
+
 	// Chamar service para listar projetos
 	projects, err := h.projectService.GetByUserID(userID, &filter)
 	if err != nil {
@@ -108,7 +124,7 @@ func (h *ProjectHandler) List(c *gin.Context) {
 // @Router /api/projects/{id} [get]
 func (h *ProjectHandler) GetByID(c *gin.Context) {
 	userID := c.GetUint("user_id")
-	
+
 	// Obter ID do projeto da URL
 	projectIDStr := c.Param("id")
 	projectID, err := strconv.ParseUint(projectIDStr, 10, 32)
@@ -143,7 +159,7 @@ func (h *ProjectHandler) GetByID(c *gin.Context) {
 // @Router /api/projects/{id}/with-tasks [get]
 func (h *ProjectHandler) GetWithTasks(c *gin.Context) {
 	userID := c.GetUint("user_id")
-	
+
 	// Obter ID do projeto da URL
 	projectIDStr := c.Param("id")
 	projectID, err := strconv.ParseUint(projectIDStr, 10, 32)
@@ -222,7 +238,7 @@ func (h *ProjectHandler) Update(c *gin.Context) {
 // @Router /api/projects/{id} [delete]
 func (h *ProjectHandler) Delete(c *gin.Context) {
 	userID := c.GetUint("user_id")
-	
+
 	// Obter ID do projeto da URL
 	projectIDStr := c.Param("id")
 	projectID, err := strconv.ParseUint(projectIDStr, 10, 32)
@@ -257,7 +273,7 @@ func (h *ProjectHandler) Delete(c *gin.Context) {
 // @Router /api/clients/{clientId}/projects [get]
 func (h *ProjectHandler) GetByClient(c *gin.Context) {
 	userID := c.GetUint("user_id")
-	
+
 	// Obter ID do cliente da URL
 	clientIDStr := c.Param("clientId")
 	clientID, err := strconv.ParseUint(clientIDStr, 10, 32)
@@ -345,7 +361,7 @@ func (h *ProjectHandler) ChangeStatus(c *gin.Context) {
 // @Router /api/projects/{id}/summary [get]
 func (h *ProjectHandler) GetSummary(c *gin.Context) {
 	userID := c.GetUint("user_id")
-	
+
 	// Obter ID do projeto da URL
 	projectIDStr := c.Param("id")
 	projectID, err := strconv.ParseUint(projectIDStr, 10, 32)
@@ -368,4 +384,3 @@ func (h *ProjectHandler) GetSummary(c *gin.Context) {
 type ChangeStatusRequest struct {
 	Status models.ProjectStatus `json:"status" binding:"required" example:"COMPLETED"`
 }
-
