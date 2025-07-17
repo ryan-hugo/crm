@@ -117,6 +117,7 @@ func main() {
 				users.DELETE("/delete-account", userHandler.DeleteAccount)
 				users.GET("/stats", userHandler.GetStats)
 				users.GET("/activities", userHandler.GetRecentActivities)
+				users.GET("/dashboard", userHandler.GetDashboardData)
 			}
 
 			// Rotas de contatos

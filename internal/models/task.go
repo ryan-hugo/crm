@@ -50,7 +50,7 @@ type TaskCreateRequest struct {
 	Description string     `json:"description,omitempty"`
 	DueDate     *time.Time `json:"due_date,omitempty"`
 	Priority    Priority   `json:"priority" validate:"required,oneof=LOW MEDIUM HIGH"`
-	Status      TaskStatus `json:"status" validate:"required,oneof=PENDING COMPLETED"`
+	Status      TaskStatus `json:"status,omitempty" validate:"omitempty,oneof=PENDING COMPLETED"` // Opcional, será ignorado
 	ContactID   *uint      `json:"contact_id,omitempty"`
 	ProjectID   *uint      `json:"project_id,omitempty"`
 }

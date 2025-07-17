@@ -265,6 +265,38 @@ func (h *UserHandler) GetRecentActivities(c *gin.Context) {
 	c.JSON(http.StatusOK, activities)
 }
 
+// GetDashboardData obtém dados específicos para o dashboard
+// @Summary Obter dados do dashboard
+// @Description Retorna dados específicos para o dashboard (projetos ativos, interações recentes, tarefas pendentes)
+// @Tags users
+// @Security BearerAuth
+// @Produce json
+// @Success 200 {object} services.DashboardData
+// @Failure 401 {object} map[string]interface{} "Não autorizado"
+// @Failure 500 {object} map[string]interface{} "Erro interno"
+// @Router /api/users/dashboard [get]
+func (h *UserHandler) GetDashboardData(c *gin.Context) {
+	start := time.Now()
+	userID := c.GetUint("user_id")
+
+	dashboardData, err := h.userService.GetDashboardData(userID)
+	if err != nil {
+		logger.LogError(err, "Erro ao buscar dados do dashboard", map[string]interface{}{
+			"user_id": userID,
+		})
+		c.Error(err)
+		return
+	}
+
+	duration := time.Since(start)
+	logger.WithFields("INFO", "User Dashboard Data Retrieved", map[string]interface{}{
+		"user_id":  userID,
+		"duration": duration,
+	})
+
+	c.JSON(http.StatusOK, dashboardData)
+}
+
 // ChangePasswordRequest representa os dados para alteração de senha
 type ChangePasswordRequest struct {
 	CurrentPassword string `json:"current_password" binding:"required" example:"senhaAtual123"`

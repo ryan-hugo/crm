@@ -78,7 +78,7 @@ func (s *taskService) Create(userID uint, req *models.TaskCreateRequest) (*model
 		Description: req.Description,
 		DueDate:     req.DueDate,
 		Priority:    req.Priority,
-		Status:      req.Status,
+		Status:      models.TaskStatusPending, // Sempre criar como PENDING (uncomplete)
 		UserID:      userID,
 		ContactID:   req.ContactID,
 		ProjectID:   req.ProjectID,

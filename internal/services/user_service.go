@@ -5,6 +5,7 @@ import (
 	"crm-backend/internal/repositories"
 	"crm-backend/pkg/errors"
 	"fmt"
+	"time"
 
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
@@ -18,20 +19,56 @@ type UserService interface {
 	DeleteAccount(userID uint, password string) error
 	GetUserStats(userID uint) (*UserStats, error)
 	GetRecentActivities(userID uint, limit int) (*models.RecentActivityResponse, error)
+	GetDashboardData(userID uint) (*DashboardData, error)
 }
 
 // UserStats representa estatísticas do usuário
 type UserStats struct {
-	TotalContacts     int64 `json:"total_contacts"`
-	TotalClients      int64 `json:"total_clients"`
-	TotalLeads        int64 `json:"total_leads"`
-	TotalTasks        int64 `json:"total_tasks"`
-	PendingTasks      int64 `json:"pending_tasks"`
-	CompletedTasks    int64 `json:"completed_tasks"`
-	TotalProjects     int64 `json:"total_projects"`
-	ActiveProjects    int64 `json:"active_projects"`
-	CompletedProjects int64 `json:"completed_projects"`
-	TotalInteractions int64 `json:"total_interactions"`
+	TotalContacts       int64                        `json:"total_contacts"`
+	TotalClients        int64                        `json:"total_clients"`
+	TotalLeads          int64                        `json:"total_leads"`
+	TotalTasks          int64                        `json:"total_tasks"`
+	PendingTasks        int64                        `json:"pending_tasks"`
+	CompletedTasks      int64                        `json:"completed_tasks"`
+	TotalProjects       int64                        `json:"total_projects"`
+	ActiveProjects      int64                        `json:"active_projects"`
+	CompletedProjects   int64                        `json:"completed_projects"`
+	TotalInteractions   int64                        `json:"total_interactions"`
+}
+
+// DashboardProject representa um resumo de projeto para o dashboard
+type DashboardProject struct {
+	ID          uint                  `json:"id"`
+	Name        string                `json:"name"`
+	Status      models.ProjectStatus  `json:"status"`
+	ClientName  string                `json:"client_name"`
+	CreatedAt   time.Time             `json:"created_at"`
+}
+
+// DashboardInteraction representa um resumo de interação para o dashboard
+type DashboardInteraction struct {
+	ID          uint                     `json:"id"`
+	Type        models.InteractionType   `json:"type"`
+	Subject     string                   `json:"subject"`
+	ContactName string                   `json:"contact_name"`
+	Date        time.Time                `json:"date"`
+}
+
+// DashboardTask representa um resumo de tarefa para o dashboard
+type DashboardTask struct {
+	ID          uint              `json:"id"`
+	Title       string            `json:"title"`
+	Priority    models.Priority   `json:"priority"`
+	DueDate     *time.Time        `json:"due_date,omitempty"`
+	ContactName string            `json:"contact_name,omitempty"`
+	ProjectName string            `json:"project_name,omitempty"`
+}
+
+// DashboardData representa os dados completos para o dashboard
+type DashboardData struct {
+	RecentProjects      []DashboardProject           `json:"recent_projects"`
+	RecentInteractions  []DashboardInteraction       `json:"recent_interactions"`
+	RecentPendingTasks  []DashboardTask              `json:"recent_pending_tasks"`
 }
 
 // userService implementa UserService
@@ -261,23 +298,7 @@ func (s *userService) GetRecentActivities(userID uint, limit int) (*models.Recen
 
 	// Converter interações para atividades
 	for _, interaction := range interactions {
-		contactID := interaction.ContactID
-		activity := models.UserActivity{
-			ID:        interaction.ID,
-			Type:      models.ActivityTypeInteraction,
-			Action:    string(interaction.Type),
-			Title:     interaction.Subject,
-			Detail:    truncateString(interaction.Description, 100),
-			ItemID:    interaction.ID,
-			CreatedAt: interaction.CreatedAt,
-			RelatedID: &contactID,
-		}
-
-		if interaction.Contact.Name != "" {
-			contactName := interaction.Contact.Name
-			activity.RelatedName = &contactName
-		}
-
+		activity := createActivityFromInteraction(interaction)
 		activities = append(activities, activity)
 	}
 
@@ -292,31 +313,7 @@ func (s *userService) GetRecentActivities(userID uint, limit int) (*models.Recen
 
 	// Converter tarefas para atividades
 	for _, task := range tasks {
-		action := "Adicionada"
-		if task.Status == models.TaskStatusCompleted {
-			action = "Concluída"
-		}
-
-		activity := models.UserActivity{
-			ID:        task.ID,
-			Type:      models.ActivityTypeTask,
-			Action:    action,
-			Title:     task.Title,
-			Detail:    truncateString(task.Description, 100),
-			ItemID:    task.ID,
-			CreatedAt: task.CreatedAt,
-		}
-
-		if task.ContactID != nil && task.Contact != nil && task.Contact.Name != "" {
-			activity.RelatedID = task.ContactID
-			contactName := task.Contact.Name
-			activity.RelatedName = &contactName
-		} else if task.ProjectID != nil && task.Project != nil && task.Project.Name != "" {
-			activity.RelatedID = task.ProjectID
-			projectName := task.Project.Name
-			activity.RelatedName = &projectName
-		}
-
+		activity := createActivityFromTask(task)
 		activities = append(activities, activity)
 	}
 
@@ -331,35 +328,7 @@ func (s *userService) GetRecentActivities(userID uint, limit int) (*models.Recen
 
 	// Converter projetos para atividades
 	for _, project := range projects {
-		var action string
-		switch project.Status {
-		case models.ProjectStatusInProgress:
-			action = "Em andamento"
-		case models.ProjectStatusCompleted:
-			action = "Concluído"
-		case models.ProjectStatusCancelled:
-			action = "Cancelado"
-		default:
-			action = "Criado"
-		}
-
-		activity := models.UserActivity{
-			ID:        project.ID,
-			Type:      models.ActivityTypeProject,
-			Action:    action,
-			Title:     project.Name,
-			Detail:    truncateString(project.Description, 100),
-			ItemID:    project.ID,
-			CreatedAt: project.CreatedAt,
-		}
-
-		if project.ClientID != 0 && project.Client.Name != "" {
-			clientID := project.ClientID
-			activity.RelatedID = &clientID
-			clientName := project.Client.Name
-			activity.RelatedName = &clientName
-		}
-
+		activity := createActivityFromProject(project)
 		activities = append(activities, activity)
 	}
 
@@ -374,18 +343,7 @@ func (s *userService) GetRecentActivities(userID uint, limit int) (*models.Recen
 
 	// Converter contatos para atividades
 	for _, contact := range contacts {
-		action := fmt.Sprintf("Novo %s", contact.Type)
-
-		activity := models.UserActivity{
-			ID:        contact.ID,
-			Type:      models.ActivityTypeContact,
-			Action:    action,
-			Title:     contact.Name,
-			Detail:    truncateString(contact.Notes, 100),
-			ItemID:    contact.ID,
-			CreatedAt: contact.CreatedAt,
-		}
-
+		activity := createActivityFromContact(contact)
 		activities = append(activities, activity)
 	}
 
@@ -403,7 +361,134 @@ func (s *userService) GetRecentActivities(userID uint, limit int) (*models.Recen
 	}
 
 	return response, nil
-} // Helper para truncar strings longas
+}
+
+// Funções auxiliares para criar UserActivity de forma segura
+
+// createActivityFromInteraction cria uma UserActivity a partir de uma Interaction
+func createActivityFromInteraction(interaction models.Interaction) models.UserActivity {
+	title := interaction.Subject
+	if title == "" {
+		title = "Interação sem assunto"
+	}
+	
+	contactID := interaction.ContactID
+	activity := models.UserActivity{
+		ID:        interaction.ID,
+		Type:      models.ActivityTypeInteraction,
+		Action:    string(interaction.Type),
+		Title:     title,
+		Detail:    truncateString(interaction.Description, 100),
+		ItemID:    interaction.ID,
+		CreatedAt: interaction.CreatedAt,
+		RelatedID: &contactID,
+	}
+
+	if interaction.Contact.Name != "" {
+		contactName := interaction.Contact.Name
+		activity.RelatedName = &contactName
+	}
+
+	return activity
+}
+
+// createActivityFromTask cria uma UserActivity a partir de uma Task
+func createActivityFromTask(task models.Task) models.UserActivity {
+	action := "Adicionada"
+	if task.Status == models.TaskStatusCompleted {
+		action = "Concluída"
+	}
+
+	title := task.Title
+	if title == "" {
+		title = "Tarefa sem título"
+	}
+
+	activity := models.UserActivity{
+		ID:        task.ID,
+		Type:      models.ActivityTypeTask,
+		Action:    action,
+		Title:     title,
+		Detail:    truncateString(task.Description, 100),
+		ItemID:    task.ID,
+		CreatedAt: task.CreatedAt,
+	}
+
+	if task.ContactID != nil && task.Contact != nil && task.Contact.Name != "" {
+		activity.RelatedID = task.ContactID
+		contactName := task.Contact.Name
+		activity.RelatedName = &contactName
+	} else if task.ProjectID != nil && task.Project != nil && task.Project.Name != "" {
+		activity.RelatedID = task.ProjectID
+		projectName := task.Project.Name
+		activity.RelatedName = &projectName
+	}
+
+	return activity
+}
+
+// createActivityFromProject cria uma UserActivity a partir de um Project
+func createActivityFromProject(project models.Project) models.UserActivity {
+	var action string
+	switch project.Status {
+	case models.ProjectStatusInProgress:
+		action = "Em andamento"
+	case models.ProjectStatusCompleted:
+		action = "Concluído"
+	case models.ProjectStatusCancelled:
+		action = "Cancelado"
+	default:
+		action = "Criado"
+	}
+
+	title := project.Name
+	if title == "" {
+		title = "Projeto sem nome"
+	}
+
+	activity := models.UserActivity{
+		ID:        project.ID,
+		Type:      models.ActivityTypeProject,
+		Action:    action,
+		Title:     title,
+		Detail:    truncateString(project.Description, 100),
+		ItemID:    project.ID,
+		CreatedAt: project.CreatedAt,
+	}
+
+	if project.ClientID != 0 && project.Client.Name != "" {
+		clientID := project.ClientID
+		activity.RelatedID = &clientID
+		clientName := project.Client.Name
+		activity.RelatedName = &clientName
+	}
+
+	return activity
+}
+
+// createActivityFromContact cria uma UserActivity a partir de um Contact
+func createActivityFromContact(contact models.Contact) models.UserActivity {
+	action := fmt.Sprintf("Novo %s", contact.Type)
+
+	title := contact.Name
+	if title == "" {
+		title = "Contato sem nome"
+	}
+
+	activity := models.UserActivity{
+		ID:        contact.ID,
+		Type:      models.ActivityTypeContact,
+		Action:    action,
+		Title:     title,
+		Detail:    truncateString(contact.Notes, 100),
+		ItemID:    contact.ID,
+		CreatedAt: contact.CreatedAt,
+	}
+
+	return activity
+}
+
+// Helper para truncar strings longas
 func truncateString(s string, maxLength int) string {
 	if len(s) <= maxLength {
 		return s
@@ -421,4 +506,84 @@ func sortActivitiesByDate(activities []models.UserActivity) {
 			}
 		}
 	}
+}
+
+// GetDashboardData obtém dados específicos para o dashboard
+func (s *userService) GetDashboardData(userID uint) (*DashboardData, error) {
+	dashboardData := &DashboardData{
+		RecentProjects:     []DashboardProject{},
+		RecentInteractions: []DashboardInteraction{},
+		RecentPendingTasks: []DashboardTask{},
+	}
+
+	// Buscar 5 interações mais recentes para o dashboard
+	if s.interactionRepo != nil {
+		recentFilter := &models.InteractionListFilter{
+			Limit: 5,
+		}
+		recentInteractions, err := s.interactionRepo.GetByUserID(userID, recentFilter)
+		if err == nil {
+			for _, interaction := range recentInteractions {
+				dashboardInteraction := DashboardInteraction{
+					ID:          interaction.ID,
+					Type:        interaction.Type,
+					Subject:     interaction.Subject,
+					ContactName: interaction.Contact.Name,
+					Date:        interaction.Date,
+				}
+				dashboardData.RecentInteractions = append(dashboardData.RecentInteractions, dashboardInteraction)
+			}
+		}
+	}
+
+	// Buscar projetos ativos recentes para o dashboard
+	if s.projectRepo != nil {
+		activeFilter := &models.ProjectListFilter{
+			Status: models.ProjectStatusInProgress,
+			Limit:  5,
+		}
+		activeProjects, err := s.projectRepo.GetByUserID(userID, activeFilter)
+		if err == nil {
+			for _, project := range activeProjects {
+				dashboardProject := DashboardProject{
+					ID:         project.ID,
+					Name:       project.Name,
+					Status:     project.Status,
+					ClientName: project.Client.Name,
+					CreatedAt:  project.CreatedAt,
+				}
+				dashboardData.RecentProjects = append(dashboardData.RecentProjects, dashboardProject)
+			}
+		}
+	}
+
+	// Buscar tarefas pendentes recentes para o dashboard
+	if s.taskRepo != nil {
+		pendingFilter := &models.TaskListFilter{
+			Status: models.TaskStatusPending,
+			Limit:  5,
+		}
+		pendingTasks, err := s.taskRepo.GetByUserID(userID, pendingFilter)
+		if err == nil {
+			for _, task := range pendingTasks {
+				dashboardTask := DashboardTask{
+					ID:       task.ID,
+					Title:    task.Title,
+					Priority: task.Priority,
+					DueDate:  task.DueDate,
+				}
+				
+				if task.Contact != nil {
+					dashboardTask.ContactName = task.Contact.Name
+				}
+				if task.Project != nil {
+					dashboardTask.ProjectName = task.Project.Name
+				}
+				
+				dashboardData.RecentPendingTasks = append(dashboardData.RecentPendingTasks, dashboardTask)
+			}
+		}
+	}
+
+	return dashboardData, nil
 }
