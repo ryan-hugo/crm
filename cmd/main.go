@@ -150,7 +150,7 @@ func main() {
 			{
 				projects.POST("/create", projectHandler.Create)
 				projects.GET("/list", projectHandler.List)
-				projects.GET("/:id", projectHandler.GetByID)
+				projects.GET("/list/:id", projectHandler.GetByID)
 				projects.PUT("/:id", projectHandler.Update)
 				projects.DELETE("/:id", projectHandler.Delete)
 			}

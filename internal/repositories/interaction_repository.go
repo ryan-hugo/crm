@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"crm-backend/internal/models"
+	"time"
 
 	"gorm.io/gorm"
 )
@@ -15,6 +16,7 @@ type InteractionRepository interface {
 	Delete(id uint) error
 	GetByUserID(userID uint, filter *models.InteractionListFilter) ([]models.Interaction, error)
 	CountByContactID(contactID uint) (int64, error)
+	GetRecentByUserID(userID uint, days int, limit int) ([]models.Interaction, error)
 }
 
 // interactionRepository implementa InteractionRepository
@@ -145,3 +147,25 @@ func (r *interactionRepository) CountByContactID(contactID uint) (int64, error) 
 	return count, nil
 }
 
+// GetRecentByUserID busca interações recentes do usuário nos últimos X dias
+func (r *interactionRepository) GetRecentByUserID(userID uint, days int, limit int) ([]models.Interaction, error) {
+	var interactions []models.Interaction
+
+	// Calcular data de início (X dias atrás)
+	startDate := time.Now().AddDate(0, 0, -days)
+
+	query := r.db.Joins("JOIN contacts ON interactions.contact_id = contacts.id").
+		Where("contacts.user_id = ? AND interactions.date >= ?", userID, startDate).
+		Order("interactions.date DESC").
+		Preload("Contact")
+
+	if limit > 0 {
+		query = query.Limit(limit)
+	}
+
+	if err := query.Find(&interactions).Error; err != nil {
+		return nil, err
+	}
+
+	return interactions, nil
+}

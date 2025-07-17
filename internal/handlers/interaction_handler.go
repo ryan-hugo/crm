@@ -48,7 +48,7 @@ func (h *InteractionHandler) Create(c *gin.Context) {
 	// Obter ID do contato da URL (parâmetro :id)
 	contactIDStr := c.Param("id")
 	logger.Debugf("Criando interação para contato ID: %s (usuário: %d)", contactIDStr, userID)
-	
+
 	contactID, err := strconv.ParseUint(contactIDStr, 10, 32)
 	if err != nil {
 		logger.LogError(err, "Erro ao converter ID do contato", map[string]interface{}{
@@ -119,7 +119,7 @@ func (h *InteractionHandler) ListByContact(c *gin.Context) {
 	// Obter ID do contato da URL (parâmetro :id)
 	contactIDStr := c.Param("id")
 	logger.Debugf("Listando interações para contato ID: %s (usuário: %d)", contactIDStr, userID)
-	
+
 	contactID, err := strconv.ParseUint(contactIDStr, 10, 32)
 	if err != nil {
 		logger.LogError(err, "Erro ao converter ID do contato", map[string]interface{}{
@@ -216,7 +216,7 @@ func (h *InteractionHandler) List(c *gin.Context) {
 // @Router /api/interactions/{id} [get]
 func (h *InteractionHandler) GetByID(c *gin.Context) {
 	userID := c.GetUint("user_id")
-	
+
 	// Obter ID da interação da URL
 	interactionIDStr := c.Param("id")
 	interactionID, err := strconv.ParseUint(interactionIDStr, 10, 32)
@@ -295,7 +295,7 @@ func (h *InteractionHandler) Update(c *gin.Context) {
 // @Router /api/interactions/{id} [delete]
 func (h *InteractionHandler) Delete(c *gin.Context) {
 	userID := c.GetUint("user_id")
-	
+
 	// Obter ID da interação da URL
 	interactionIDStr := c.Param("id")
 	interactionID, err := strconv.ParseUint(interactionIDStr, 10, 32)
@@ -327,7 +327,7 @@ func (h *InteractionHandler) Delete(c *gin.Context) {
 // @Router /api/interactions/recent [get]
 func (h *InteractionHandler) GetRecent(c *gin.Context) {
 	userID := c.GetUint("user_id")
-	
+
 	// Obter limite da query string
 	limitStr := c.DefaultQuery("limit", "10")
 	limit, err := strconv.Atoi(limitStr)
@@ -345,3 +345,51 @@ func (h *InteractionHandler) GetRecent(c *gin.Context) {
 	c.JSON(http.StatusOK, interactions)
 }
 
+// GetRecentInteractions obtém interações recentes dos últimos 7 dias
+// @Summary Obter interações recentes
+// @Description Obtém interações recentes do usuário dos últimos 7 dias
+// @Tags interactions
+// @Security BearerAuth
+// @Produce json
+// @Param limit query int false "Limite de resultados (padrão: 10)"
+// @Success 200 {object} map[string]interface{} "Lista de interações recentes"
+// @Failure 401 {object} map[string]interface{} "Não autorizado"
+// @Failure 500 {object} map[string]interface{} "Erro interno"
+// @Router /api/interactions/recent [get]
+// GetRecentInteractionsCount retorna apenas o número de interações recentes dos últimos 7 dias
+// @Summary Contar interações recentes
+// @Description Retorna o número de interações recentes do usuário dos últimos 7 dias
+// @Tags interactions
+// @Security BearerAuth
+// @Produce json
+// @Param limit query int false "Limite de resultados (padrão: 10)"
+// @Success 200 {object} map[string]int "Quantidade de interações recentes"
+// @Failure 401 {object} map[string]interface{} "Não autorizado"
+// @Failure 500 {object} map[string]interface{} "Erro interno"
+// @Router /api/interactions/recent/count [get]
+func (h *InteractionHandler) GetRecentInteractionsCount(c *gin.Context) {
+	userID := c.GetUint("user_id")
+
+	// Obter limite da query string (padrão: 10)
+	limitStr := c.DefaultQuery("limit", "10")
+	limit, err := strconv.Atoi(limitStr)
+	if err != nil || limit <= 0 || limit > 50 {
+		limit = 10
+	}
+
+	// Chamar service para obter interações recentes
+	interactions, err := h.interactionService.GetRecentInteractions(userID, limit)
+	if err != nil {
+		logger.LogError(err, "Erro ao buscar interações recentes", map[string]interface{}{
+			"user_id": userID,
+			"limit":   limit,
+		})
+		c.Error(err)
+		return
+	}
+
+	// Retornar apenas o count numérico
+	c.JSON(http.StatusOK, map[string]int{
+		"count": len(interactions),
+	})
+}

@@ -208,21 +208,13 @@ func (s *interactionService) Delete(userID, interactionID uint) error {
 	return nil
 }
 
-// GetRecentInteractions obtém as interações mais recentes do usuário
+// GetRecentInteractions obtém interações recentes dos últimos 7 dias
 func (s *interactionService) GetRecentInteractions(userID uint, limit int) ([]models.Interaction, error) {
-	if limit <= 0 {
-		limit = 10 // Limite padrão
-	}
-
-	filter := &models.InteractionListFilter{
-		Limit: limit,
-	}
-
-	interactions, err := s.interactionRepo.GetByUserID(userID, filter)
+	// Buscar interações dos últimos 7 dias
+	interactions, err := s.interactionRepo.GetRecentByUserID(userID, 7, limit)
 	if err != nil {
 		return nil, errors.ErrInternalServer
 	}
 
 	return interactions, nil
 }
-

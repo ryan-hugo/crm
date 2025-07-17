@@ -24,16 +24,17 @@ type UserService interface {
 
 // UserStats representa estatísticas do usuário
 type UserStats struct {
-	TotalContacts     int64 `json:"total_contacts"`
-	TotalClients      int64 `json:"total_clients"`
-	TotalLeads        int64 `json:"total_leads"`
-	TotalTasks        int64 `json:"total_tasks"`
-	PendingTasks      int64 `json:"pending_tasks"`
-	CompletedTasks    int64 `json:"completed_tasks"`
-	TotalProjects     int64 `json:"total_projects"`
-	ActiveProjects    int64 `json:"active_projects"`
-	CompletedProjects int64 `json:"completed_projects"`
-	TotalInteractions int64 `json:"total_interactions"`
+	TotalContacts      int64 `json:"total_contacts"`
+	TotalClients       int64 `json:"total_clients"`
+	TotalLeads         int64 `json:"total_leads"`
+	TotalTasks         int64 `json:"total_tasks"`
+	PendingTasks       int64 `json:"pending_tasks"`
+	CompletedTasks     int64 `json:"completed_tasks"`
+	TotalProjects      int64 `json:"total_projects"`
+	ActiveProjects     int64 `json:"active_projects"`
+	CompletedProjects  int64 `json:"completed_projects"`
+	TotalInteractions  int64 `json:"total_interactions"`
+	RecentInteractions int64 `json:"recent_interactions"`
 }
 
 // DashboardProject representa um resumo de projeto para o dashboard
@@ -205,7 +206,9 @@ func (s *userService) DeleteAccount(userID uint, password string) error {
 
 // GetUserStats obtém estatísticas do usuário
 func (s *userService) GetUserStats(userID uint) (*UserStats, error) {
-	stats := &UserStats{}
+	stats := &UserStats{
+		RecentInteractions: 0, // Inicializar explicitamente
+	}
 
 	// Total de contatos
 	if s.contactRepo != nil {
@@ -274,6 +277,20 @@ func (s *userService) GetUserStats(userID uint) (*UserStats, error) {
 			return nil, errors.ErrInternalServer
 		}
 		stats.TotalInteractions = int64(len(interactions))
+
+		// Contar interações recentes dos últimos 7 dias
+		recentInteractions, err := s.interactionRepo.GetRecentByUserID(userID, 7, 100) // limite alto para contar todas
+		if err != nil {
+			// Se houver erro, definir como 0 mas incluir no resultado
+			stats.RecentInteractions = 0
+		} else {
+			stats.RecentInteractions = int64(len(recentInteractions))
+		}
+
+		// // Para debug: garantir que sempre tenha pelo menos 0
+		// if stats.RecentInteractions < 0 {
+		// 	stats.RecentInteractions = 0
+		// }
 	}
 
 	return stats, nil
