@@ -101,6 +101,7 @@ func main() {
 			auth.POST("/register", authHandler.Register)
 			auth.POST("/login", authHandler.Login)
 			auth.GET("/validate", middleware.AuthMiddleware(cfg.JWTSecret), authHandler.ValidateToken)
+			auth.POST("/logout", middleware.AuthMiddleware(cfg.JWTSecret), authHandler.Logout)
 		}
 
 		// Rotas protegidas (agora como subgrupo de /api)
