@@ -4,7 +4,7 @@ import (
 	"crm-backend/internal/models"
 	"crm-backend/internal/repositories"
 	"crm-backend/pkg/errors"
-	"fmt"
+	"sort"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
@@ -66,11 +66,24 @@ type DashboardTask struct {
 	ProjectName string          `json:"project_name,omitempty"`
 }
 
+// DashboardContact representa contatos para o dashboard
+type DashboardContact struct {
+	ID        uint               `json:"id"`
+	Name      string             `json:"name"`
+	Email     string             `json:"email"`
+	Type      models.ContactType `json:"type"`
+	Company   string             `json:"company,omitempty"`
+	CreatedAt time.Time          `json:"created_at"`
+}
+
 // DashboardData representa os dados completos para o dashboard
 type DashboardData struct {
+	Stats              UserStats              `json:"stats"`
+	RecentActivities   []models.UserActivity  `json:"recent_activities"`
 	RecentProjects     []DashboardProject     `json:"recent_projects"`
 	RecentInteractions []DashboardInteraction `json:"recent_interactions"`
 	RecentPendingTasks []DashboardTask        `json:"recent_pending_tasks"`
+	RecentContacts     []DashboardContact     `json:"recent_contacts"`
 }
 
 // userService implementa UserService
@@ -310,29 +323,36 @@ func (s *userService) GetUserStats(userID uint) (*UserStats, error) {
 // GetRecentActivities obtém as atividades recentes do usuário
 func (s *userService) GetRecentActivities(userID uint, limit int) (*models.RecentActivityResponse, error) {
 	if limit <= 0 {
-		limit = 10 // Limite padrão
+		limit = 20 // Limite padrão aumentado para capturar mais atividades
 	}
 
 	activities := []models.UserActivity{}
 
-	// 1. Buscar interações recentes
-	interactionFilter := &models.InteractionListFilter{
-		Limit: limit,
-	}
-	interactions, err := s.interactionRepo.GetByUserID(userID, interactionFilter)
+	// 1. Buscar interações recentes (ordenadas por created_at/updated_at)
+	interactions, err := s.interactionRepo.GetRecentByUserID(userID, 30, limit*2) // Buscar mais para filtrar depois
 	if err != nil {
 		return nil, errors.ErrInternalServer
 	}
 
 	// Converter interações para atividades
 	for _, interaction := range interactions {
-		activity := createActivityFromInteraction(interaction)
-		activities = append(activities, activity)
+		// Atividade de criação
+		createActivity := createActivityFromInteraction(interaction)
+		activities = append(activities, createActivity)
+
+		// Se foi atualizada depois da criação, adicionar atividade de atualização
+		if interaction.UpdatedAt.After(interaction.CreatedAt.Add(time.Minute)) {
+			updateActivity := createActivity
+			updateActivity.Action = models.ActionUpdated
+			updateActivity.CreatedAt = interaction.UpdatedAt
+			updateActivity.UpdatedAt = interaction.UpdatedAt
+			activities = append(activities, updateActivity)
+		}
 	}
 
 	// 2. Buscar tarefas recentes
 	taskFilter := &models.TaskListFilter{
-		Limit: limit,
+		Limit: limit * 2,
 	}
 	tasks, err := s.taskRepo.GetByUserID(userID, taskFilter)
 	if err != nil {
@@ -341,13 +361,33 @@ func (s *userService) GetRecentActivities(userID uint, limit int) (*models.Recen
 
 	// Converter tarefas para atividades
 	for _, task := range tasks {
-		activity := createActivityFromTask(task)
-		activities = append(activities, activity)
+		// Atividade de criação
+		createActivity := createActivityFromTask(task)
+		createActivity.Action = models.ActionCreated
+		activities = append(activities, createActivity)
+
+		// Se foi atualizada depois da criação, adicionar atividade de atualização
+		if task.UpdatedAt.After(task.CreatedAt.Add(time.Minute)) {
+			updateActivity := createActivity
+			updateActivity.Action = models.ActionUpdated
+			updateActivity.CreatedAt = task.UpdatedAt
+			updateActivity.UpdatedAt = task.UpdatedAt
+			activities = append(activities, updateActivity)
+		}
+
+		// Se foi concluída, adicionar atividade de conclusão
+		if task.Status == models.TaskStatusCompleted {
+			completeActivity := createActivity
+			completeActivity.Action = models.ActionCompleted
+			completeActivity.CreatedAt = task.UpdatedAt
+			completeActivity.UpdatedAt = task.UpdatedAt
+			activities = append(activities, completeActivity)
+		}
 	}
 
 	// 3. Buscar projetos recentes
 	projectFilter := &models.ProjectListFilter{
-		Limit: limit,
+		Limit: limit * 2,
 	}
 	projects, err := s.projectRepo.GetByUserID(userID, projectFilter)
 	if err != nil {
@@ -356,13 +396,36 @@ func (s *userService) GetRecentActivities(userID uint, limit int) (*models.Recen
 
 	// Converter projetos para atividades
 	for _, project := range projects {
-		activity := createActivityFromProject(project)
-		activities = append(activities, activity)
+		// Atividade de criação
+		createActivity := createActivityFromProject(project)
+		createActivity.Action = models.ActionCreated
+		activities = append(activities, createActivity)
+
+		// Se foi atualizado depois da criação, adicionar atividade de atualização
+		if project.UpdatedAt.After(project.CreatedAt.Add(time.Minute)) {
+			updateActivity := createActivity
+
+			// Determinar o tipo de atualização baseado no status
+			switch project.Status {
+			case models.ProjectStatusInProgress:
+				updateActivity.Action = models.ActionStarted
+			case models.ProjectStatusCompleted:
+				updateActivity.Action = models.ActionCompleted
+			case models.ProjectStatusCancelled:
+				updateActivity.Action = models.ActionCancelled
+			default:
+				updateActivity.Action = models.ActionUpdated
+			}
+
+			updateActivity.CreatedAt = project.UpdatedAt
+			updateActivity.UpdatedAt = project.UpdatedAt
+			activities = append(activities, updateActivity)
+		}
 	}
 
 	// 4. Buscar contatos recentes
 	contactFilter := &models.ContactListFilter{
-		Limit: limit,
+		Limit: limit * 2,
 	}
 	contacts, err := s.contactRepo.GetByUserID(userID, contactFilter)
 	if err != nil {
@@ -371,8 +434,18 @@ func (s *userService) GetRecentActivities(userID uint, limit int) (*models.Recen
 
 	// Converter contatos para atividades
 	for _, contact := range contacts {
-		activity := createActivityFromContact(contact)
-		activities = append(activities, activity)
+		// Atividade de criação
+		createActivity := createActivityFromContact(contact)
+		activities = append(activities, createActivity)
+
+		// Se foi atualizado depois da criação, adicionar atividade de atualização
+		if contact.UpdatedAt.After(contact.CreatedAt.Add(time.Minute)) {
+			updateActivity := createActivity
+			updateActivity.Action = models.ActionUpdated
+			updateActivity.CreatedAt = contact.UpdatedAt
+			updateActivity.UpdatedAt = contact.UpdatedAt
+			activities = append(activities, updateActivity)
+		}
 	}
 
 	// Ordenar todas as atividades por data (mais recente primeiro)
@@ -404,11 +477,12 @@ func createActivityFromInteraction(interaction models.Interaction) models.UserAc
 	activity := models.UserActivity{
 		ID:        interaction.ID,
 		Type:      models.ActivityTypeInteraction,
-		Action:    string(interaction.Type),
+		Action:    models.ActionCreated,
 		Title:     title,
 		Detail:    truncateString(interaction.Description, 100),
 		ItemID:    interaction.ID,
 		CreatedAt: interaction.CreatedAt,
+		UpdatedAt: interaction.UpdatedAt,
 		RelatedID: &contactID,
 	}
 
@@ -422,9 +496,11 @@ func createActivityFromInteraction(interaction models.Interaction) models.UserAc
 
 // createActivityFromTask cria uma UserActivity a partir de uma Task
 func createActivityFromTask(task models.Task) models.UserActivity {
-	action := "Adicionada"
+	var action models.ActivityAction
 	if task.Status == models.TaskStatusCompleted {
-		action = "Concluída"
+		action = models.ActionCompleted
+	} else {
+		action = models.ActionCreated
 	}
 
 	title := task.Title
@@ -440,6 +516,7 @@ func createActivityFromTask(task models.Task) models.UserActivity {
 		Detail:    truncateString(task.Description, 100),
 		ItemID:    task.ID,
 		CreatedAt: task.CreatedAt,
+		UpdatedAt: task.UpdatedAt,
 	}
 
 	if task.ContactID != nil && task.Contact != nil && task.Contact.Name != "" {
@@ -457,16 +534,16 @@ func createActivityFromTask(task models.Task) models.UserActivity {
 
 // createActivityFromProject cria uma UserActivity a partir de um Project
 func createActivityFromProject(project models.Project) models.UserActivity {
-	var action string
+	var action models.ActivityAction
 	switch project.Status {
 	case models.ProjectStatusInProgress:
-		action = "Em andamento"
+		action = models.ActionStarted
 	case models.ProjectStatusCompleted:
-		action = "Concluído"
+		action = models.ActionCompleted
 	case models.ProjectStatusCancelled:
-		action = "Cancelado"
+		action = models.ActionCancelled
 	default:
-		action = "Criado"
+		action = models.ActionCreated
 	}
 
 	title := project.Name
@@ -482,6 +559,7 @@ func createActivityFromProject(project models.Project) models.UserActivity {
 		Detail:    truncateString(project.Description, 100),
 		ItemID:    project.ID,
 		CreatedAt: project.CreatedAt,
+		UpdatedAt: project.UpdatedAt,
 	}
 
 	if project.ClientID != 0 && project.Client.Name != "" {
@@ -496,8 +574,6 @@ func createActivityFromProject(project models.Project) models.UserActivity {
 
 // createActivityFromContact cria uma UserActivity a partir de um Contact
 func createActivityFromContact(contact models.Contact) models.UserActivity {
-	action := fmt.Sprintf("Novo %s", contact.Type)
-
 	title := contact.Name
 	if title == "" {
 		title = "Contato sem nome"
@@ -506,11 +582,12 @@ func createActivityFromContact(contact models.Contact) models.UserActivity {
 	activity := models.UserActivity{
 		ID:        contact.ID,
 		Type:      models.ActivityTypeContact,
-		Action:    action,
+		Action:    models.ActionCreated,
 		Title:     title,
 		Detail:    truncateString(contact.Notes, 100),
 		ItemID:    contact.ID,
 		CreatedAt: contact.CreatedAt,
+		UpdatedAt: contact.UpdatedAt,
 	}
 
 	return activity
@@ -526,25 +603,35 @@ func truncateString(s string, maxLength int) string {
 
 // Helper para ordenar atividades por data (mais recentes primeiro)
 func sortActivitiesByDate(activities []models.UserActivity) {
-	// Simple bubble sort (pode ser substituído por sort.Slice para melhor performance)
-	for i := 0; i < len(activities)-1; i++ {
-		for j := 0; j < len(activities)-i-1; j++ {
-			if activities[j].CreatedAt.Before(activities[j+1].CreatedAt) {
-				activities[j], activities[j+1] = activities[j+1], activities[j]
-			}
-		}
-	}
+	sort.Slice(activities, func(i, j int) bool {
+		return activities[i].CreatedAt.After(activities[j].CreatedAt)
+	})
 }
 
 // GetDashboardData obtém dados específicos para o dashboard
 func (s *userService) GetDashboardData(userID uint) (*DashboardData, error) {
+	// 1. Obter estatísticas do usuário
+	stats, err := s.GetUserStats(userID)
+	if err != nil {
+		return nil, err
+	}
+
+	// 2. Obter atividades recentes (limitado a 10 para o dashboard)
+	recentActivitiesResponse, err := s.GetRecentActivities(userID, 10)
+	if err != nil {
+		return nil, err
+	}
+
 	dashboardData := &DashboardData{
+		Stats:              *stats,
+		RecentActivities:   recentActivitiesResponse.Activities,
 		RecentProjects:     []DashboardProject{},
 		RecentInteractions: []DashboardInteraction{},
 		RecentPendingTasks: []DashboardTask{},
+		RecentContacts:     []DashboardContact{},
 	}
 
-	// Buscar 5 interações mais recentes para o dashboard
+	// 3. Buscar 5 interações mais recentes para o dashboard
 	if s.interactionRepo != nil {
 		recentFilter := &models.InteractionListFilter{
 			Limit: 5,
@@ -609,6 +696,28 @@ func (s *userService) GetDashboardData(userID uint) (*DashboardData, error) {
 				}
 
 				dashboardData.RecentPendingTasks = append(dashboardData.RecentPendingTasks, dashboardTask)
+			}
+		}
+	}
+
+	// 4. Buscar 5 contatos mais recentes para o dashboard
+	if s.contactRepo != nil {
+		recentContactFilter := &models.ContactListFilter{
+			Limit: 5,
+		}
+		contacts, err := s.contactRepo.GetByUserID(userID, recentContactFilter)
+		if err == nil {
+			for _, contact := range contacts {
+				dashboardContact := DashboardContact{
+					ID:        contact.ID,
+					Name:      contact.Name,
+					Email:     contact.Email,
+					Type:      contact.Type,
+					Company:   contact.Company,
+					CreatedAt: contact.CreatedAt,
+				}
+
+				dashboardData.RecentContacts = append(dashboardData.RecentContacts, dashboardContact)
 			}
 		}
 	}

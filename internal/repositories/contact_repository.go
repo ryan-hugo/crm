@@ -100,7 +100,7 @@ func (r *contactRepository) GetByUserID(userID uint, filter *models.ContactListF
 		}
 		if filter.Search != "" {
 			searchTerm := "%" + filter.Search + "%"
-			query = query.Where("name ILIKE ? OR email ILIKE ? OR company ILIKE ?", 
+			query = query.Where("name ILIKE ? OR email ILIKE ? OR company ILIKE ?",
 				searchTerm, searchTerm, searchTerm)
 		}
 
@@ -168,20 +168,17 @@ func (r *contactRepository) CountByType(userID uint, contactType models.ContactT
 	return count, nil
 }
 
-
-
 // SearchByName busca contatos por nome (busca parcial)
 func (r *contactRepository) SearchByName(userID uint, name string) ([]models.Contact, error) {
 	var contacts []models.Contact
 	searchTerm := "%" + name + "%"
-	
+
 	if err := r.db.Where("user_id = ? AND name ILIKE ?", userID, searchTerm).
 		Order("name ASC").
 		Preload("User").
 		Find(&contacts).Error; err != nil {
 		return nil, err
 	}
-	
+
 	return contacts, nil
 }
-

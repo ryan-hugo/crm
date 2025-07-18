@@ -147,8 +147,6 @@ func (r *interactionRepository) CountByContactID(contactID uint) (int64, error) 
 	return count, nil
 }
 
-
-
 // GetRecentByUserID busca interações recentes do usuário nos últimos X dias
 func (r *interactionRepository) GetRecentByUserID(userID uint, days int, limit int) ([]models.Interaction, error) {
 	var interactions []models.Interaction

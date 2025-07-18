@@ -128,8 +128,6 @@ func (r *projectRepository) CountByStatus(userID uint, status models.ProjectStat
 	return count, nil
 }
 
-
-
 // GetWithTasks obtém um projeto com suas tarefas associadas
 func (r *projectRepository) GetWithTasks(id uint) (*models.Project, error) {
 	var project models.Project
@@ -138,4 +136,3 @@ func (r *projectRepository) GetWithTasks(id uint) (*models.Project, error) {
 	}
 	return &project, nil
 }
-
